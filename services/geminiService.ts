@@ -85,11 +85,10 @@ export const sendMessageToGemini = async (
       history: contents
     });
 
+    // Fix: chat.sendMessage message property expects Part | Part[], not a Content object
     // Send the multimodal message
     const result = await chat.sendMessage({
-        message: {
-            parts: currentParts
-        }
+        message: currentParts
     });
 
     return result.text || "Opa, deu um nó aqui e não consegui analisar. Pode repetir?";

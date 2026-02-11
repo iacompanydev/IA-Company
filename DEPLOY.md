@@ -1,44 +1,22 @@
 
-# 🚀 Guia de Deploy - IAC Farm
+# 🚀 Guia de Deploy - IAC Farm (Versão Supabase)
 
-Este documento descreve como colocar o sistema **IAC Farm** em produção.
+Este documento descreve como configurar o backend no Supabase e publicar na Vercel.
 
-## 1. Configuração do GitHub
-1. Crie um novo repositório no [GitHub](https://github.com/new).
-2. No seu terminal, dentro da pasta do projeto:
-   ```bash
-   git init
-   git add .
-   git commit -m "feat: initial commit IAC Farm"
-   git remote add origin https://github.com/SEU_USUARIO/iac-farm.git
-   git branch -M main
-   git push -u origin main
-   ```
+## 1. Configuração do Supabase (Obrigatório)
 
-## 2. Banco de Dados PostgreSQL (Neon ou Vercel)
-1. Acesse o [Neon.tech](https://neon.tech) ou a aba **Storage** na Vercel.
-2. Crie uma nova base de dados PostgreSQL chamada `iac_farm`.
-3. Copie a `DATABASE_URL` (Direct Connection String).
-4. Rode as queries iniciais (contidas no arquivo `schema.sql`) no console do banco.
+Acesse seu painel em [supabase.com](https://supabase.com), selecione seu projeto e realize estes dois passos:
 
-## 3. Deploy na Vercel
-1. Vá para o [Dashboard da Vercel](https://vercel.com/dashboard).
-2. Clique em **"Add New"** -> **"Project"**.
-3. Importe o repositório do GitHub.
-4. Em **Environment Variables**, adicione:
-   - `API_KEY`: Sua chave do Google AI Studio.
-   - `DATABASE_URL`: A URL do seu PostgreSQL.
-5. Clique em **Deploy**.
-
-## 4. Estrutura de Tabelas (SQL)
-Para o seu PostgreSQL, utilize este esquema inicial:
+### A. Criar as Tabelas
+Vá no menu **SQL Editor**, clique em **New Query** e execute o código abaixo:
 
 ```sql
-CREATE TABLE plants (
+-- Tabela de Diagnósticos de Plantas
+CREATE TABLE IF NOT EXISTS plants (
   id SERIAL PRIMARY KEY,
   common_name TEXT NOT NULL,
   scientific_name TEXT,
-  date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  date TIMESTAMPTZ DEFAULT NOW(),
   image_url TEXT,
   health_status TEXT,
   diagnosis_summary TEXT,
@@ -47,10 +25,44 @@ CREATE TABLE plants (
   location TEXT
 );
 
-CREATE TABLE crop_plans (
+-- Tabela de Planos de Safra
+CREATE TABLE IF NOT EXISTS crop_plans (
   id SERIAL PRIMARY KEY,
   crop_name TEXT NOT NULL,
   data JSONB NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Habilitar acesso público (opcional, dependendo da sua política de segurança)
+ALTER TABLE plants ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Acesso Público" ON plants FOR ALL USING (true);
+
+ALTER TABLE crop_plans ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Acesso Público Planos" ON crop_plans FOR ALL USING (true);
 ```
+
+### B. Configurar o Storage (Para Fotos)
+1. No menu lateral, clique em **Storage**.
+2. Clique em **New Bucket**.
+3. Nomeie o bucket exatamente como: `fotos-lavoura`.
+4. **IMPORTANTE:** Marque a opção **Public Bucket** para que as imagens fiquem visíveis no histórico do App.
+
+---
+
+## 2. Deploy na Vercel
+
+1. Suba seu código para um repositório no GitHub.
+2. No dashboard da Vercel, clique em **"Add New"** -> **"Project"**.
+3. Importe o repositório.
+4. Em **Environment Variables**, você só precisa de uma:
+   - `API_KEY`: Sua chave do Google Gemini (obtida em ai.google.dev).
+5. O App já está configurado para ler o Supabase automaticamente através do arquivo `services/supabaseClient.ts`.
+6. Clique em **Deploy**.
+
+---
+
+## 3. Revisão de Conexão
+- **App:** `https://rigohljqktbabygidemt.supabase.co`
+- **Banco:** PostgreSQL via Supabase.
+- **IA:** Gemini 3 Pro (Processamento multimodal).
+- **Voz:** Gemini TTS (Leitura de respostas).
